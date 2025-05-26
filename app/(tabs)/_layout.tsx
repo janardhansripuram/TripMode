@@ -1,6 +1,6 @@
 import React from 'react';
 import { Tabs } from 'expo-router';
-import { Home, Plus, PieChart, Wallet, Settings } from 'lucide-react-native';
+import { Chrome as Home, Plus, ChartPie as PieChart, Wallet, Settings } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
 import { Platform, View, StyleSheet } from 'react-native';
