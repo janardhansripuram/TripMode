@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator, RefreshControl, Image } from 'react-native';
 import { Link } from 'expo-router';
-import { PlusCircle, TrendingUp, ArrowRight, Receipt } from 'lucide-react-native';
+import { CirclePlus as PlusCircle, TrendingUp, ArrowRight, Receipt } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
 import { useAuth } from '@/context/AuthContext';
