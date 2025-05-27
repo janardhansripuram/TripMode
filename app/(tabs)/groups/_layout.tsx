@@ -1,5 +1,5 @@
 import { Tabs } from 'expo-router';
-import { Users, PlusCircle, Receipt } from 'lucide-react-native';
+import { Users, CirclePlus as PlusCircle, Receipt } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
 
