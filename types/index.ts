@@ -2,8 +2,8 @@ export interface TripData {
   id: string;
   name: string;
   destination: string;
-  startDate: string;
-  endDate: string;
+  startDate: any;
+  endDate: any;
   budget: number;
   imageUrl?: string;
   userId: string;
@@ -17,7 +17,7 @@ export interface ExpenseData {
   amount: number;
   currency: string;
   category: string;
-  date: string;
+  date: any;
   notes?: string;
   receiptImage?: string;
   tripId: string;

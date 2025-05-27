@@ -5,12 +5,13 @@ import * as ImagePicker from 'expo-image-picker';
 import { Receipt, Camera, X, PlusCircle, Save } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
-import { addExpense } from '@/services/expenseService';
+import { addExpense,fetchRecentExpenses,fetchTotalSpent } from '@/services/expenseService';
 import { fetchTrips } from '@/services/expenseService';
 import CategorySelector from '@/components/CategorySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import DateTimePicker from '@/components/DateTimePicker';
 import { TripData } from '@/types';
+import { Timestamp } from 'firebase/firestore';
 
 const EXPENSE_CATEGORIES = [
   { id: 'food', name: 'Food', icon: 'utensils' },
@@ -136,7 +137,7 @@ export default function AddExpenseScreen() {
         amount: parseFloat(amount),
         category,
         currency,
-        date: date.toISOString(),
+        date: Timestamp.fromDate(date),
         notes,
         receiptImage,
         tripId: selectedTrip,
@@ -144,6 +145,9 @@ export default function AddExpenseScreen() {
       
       // Reset form and navigate back
       resetForm();
+       fetchRecentExpenses(),
+            
+      fetchTotalSpent()
       router.push('/(tabs)');
     } catch (error: any) {
       setError(error.message || 'Failed to add expense. Please try again.');

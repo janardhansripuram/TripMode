@@ -6,7 +6,8 @@ import * as ImagePicker from 'expo-image-picker';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
 import DateTimePicker from '@/components/DateTimePicker';
-import { addTrip } from '@/services/expenseService';
+import { addTrip,fetchActiveTrips } from '@/services/expenseService';
+import { Timestamp } from 'firebase/firestore';
 
 export default function NewTripScreen() {
   const { theme } = useTheme();
@@ -22,22 +23,29 @@ export default function NewTripScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
   
-  const pickImage = async () => {
-    try {
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
-      
-      if (!result.canceled) {
-        setCoverImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      console.error('Error picking image:', error);
+const pickImage = async () => {
+  try {
+    const cameraPermission = await ImagePicker.requestCameraPermissionsAsync();
+          
+          if (cameraPermission.status !== 'granted') {
+            alert('We need camera permissions to take pictures!');
+            return;
+          }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images, // ✅ Ensure mediaTypes is an array
+      allowsEditing: true,
+      aspect: [16, 9],
+      quality: 0.8,
+    });
+
+    if (!result.canceled) {
+      setCoverImage(result.assets[0].uri);
     }
-  };
+  } catch (error) {
+    console.error("Error picking image:", error);
+  }
+};
   
   const handleSubmit = async () => {
     if (!name) {
@@ -62,13 +70,14 @@ export default function NewTripScreen() {
       await addTrip({
         name,
         destination,
-        startDate: startDate.toISOString(),
-        endDate: endDate.toISOString(),
+        startDate: Timestamp.fromDate(startDate),
+        endDate: Timestamp.fromDate(endDate),
         budget: parseFloat(budget) || 0,
         imageUrl: coverImage,
       });
-      
+       fetchActiveTrips(); //fetch trips to upadate the dashboard
       router.back();
+     
     } catch (error: any) {
       setError(error.message || 'Failed to create trip. Please try again.');
     } finally {

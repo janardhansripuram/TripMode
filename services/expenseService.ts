@@ -10,14 +10,14 @@ import { mockTrips, mockExpenses } from '@/utils/mockData';
 
 export const fetchTrips = async (): Promise<TripData[]> => {
   // Use mock data for now
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockTrips);
-    }, 500);
-  });
+  // return new Promise((resolve) => {
+  //   setTimeout(() => {
+  //     resolve(mockTrips);
+  //   }, 500);
+  // });
   
   // Actual implementation would be:
-  /*
+  
   try {
     const userId = auth.currentUser?.uid;
     if (!userId) throw new Error('User not authenticated');
@@ -49,22 +49,60 @@ export const fetchTrips = async (): Promise<TripData[]> => {
     console.error('Error fetching trips:', error);
     throw error;
   }
-  */
+  
 };
+// export const fetchTrips = async (): Promise<TripData[]> => {
+//   try {
+//     const userId = auth.currentUser?.uid;
+//     if (!userId) throw new Error("User not authenticated");
+
+//     const tripsRef = collection(db, "trips");
+//     const q = query(tripsRef, where("userId", "==", userId), orderBy("startDate", "desc"));
+
+//     const querySnapshot = await getDocs(q);
+   
+//     const trips: TripData[] = querySnapshot.docs.map((doc) => ({
+//       id: doc.id,
+//       ...doc.data(),
+//       startDate: doc.data().startDate.toDate().toISOString(),
+//       endDate: doc.data().endDate.toDate().toISOString(),
+//     }));
+// console.log("trips",trips);
+//     return trips;
+//   } catch (error) {
+//     console.error("Error fetching trips:", error);
+//     throw error;
+//   }
+// };
 
 export const fetchActiveTrips = async (): Promise<TripData[]> => {
-  // Use mock data for now
-  return new Promise((resolve) => {
-    const now = new Date();
-    const activeTrips = mockTrips.filter(trip => 
-      new Date(trip.endDate) >= now
-    ).slice(0, 3);
-    
-    setTimeout(() => {
-      resolve(activeTrips);
-    }, 500);
-  });
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const tripsRef = collection(db, "trips");
+    const q = query(tripsRef, where("userId", "==", userId), where("endDate", ">=", Timestamp.now()));
+  const querySnapshot = await getDocs(q);
+    const trips: TripData[] = [];
+   querySnapshot.forEach((doc) => {
+      const data = doc.data();
+      trips.push({
+        id: doc.id,
+        ...data,
+        startDate: data.startDate.toDate().toISOString(),
+        endDate: data.endDate.toDate().toISOString(),
+        createdAt: data.createdAt.toDate().toISOString(),
+        updatedAt: data.updatedAt.toDate().toISOString(),
+      } as TripData);
+    });
+    console.log("trips",trips)
+    return trips;
+  } catch (error) {
+    console.error("Error fetching active trips:", error);
+    throw error;
+  }
 };
+
 
 export const fetchTripById = async (tripId: string): Promise<TripData | null> => {
   // Use mock data for now
@@ -77,223 +115,283 @@ export const fetchTripById = async (tripId: string): Promise<TripData | null> =>
   });
 };
 
-export const addTrip = async (tripData: Omit<TripData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> => {
-  // Simulate adding a trip
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve('new-trip-id');
-    }, 800);
-  });
+export const addTrip = async (tripData: Omit<TripData, "id" | "userId" | "createdAt" | "updatedAt">): Promise<string> => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const docRef = await addDoc(collection(db, "trips"), {
+      ...tripData,
+      userId,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding trip:", error);
+    throw error;
+  }
 };
 
 export const updateTrip = async (tripId: string, tripData: Partial<TripData>): Promise<void> => {
-  // Simulate updating a trip
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 800);
-  });
+  try {
+    const tripRef = doc(db, "trips", tripId);
+    
+    await updateDoc(tripRef, {
+      ...tripData,
+      updatedAt: Timestamp.now()
+    });
+
+    console.log(`Trip ${tripId} updated successfully!`);
+  } catch (error) {
+    console.error("Error updating trip:", error);
+    throw error;
+  }
 };
 
 export const deleteTrip = async (tripId: string): Promise<void> => {
-  // Simulate deleting a trip
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 800);
-  });
+  try {
+    const tripRef = doc(db, "trips", tripId);
+    await deleteDoc(tripRef);
+    console.log(`Trip ${tripId} deleted successfully!`);
+  } catch (error) {
+    console.error("Error deleting trip:", error);
+    throw error;
+  }
 };
 
 // EXPENSES
 
 export const fetchExpenses = async (): Promise<ExpenseData[]> => {
-  // Use mock data for now
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve(mockExpenses);
-    }, 500);
-  });
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const expensesRef = collection(db, "expenses");
+    const q = query(expensesRef, where("userId", "==", userId), orderBy("date", "desc"));
+
+    const querySnapshot = await getDocs(q);
+    const expenses: ExpenseData[] = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate().toISOString(),
+    }));
+console.log("expe",expenses);
+    return expenses;
+  } catch (error) {
+    console.error("Error fetching expense:", error);
+    throw error;
+  }
 };
 
+
+
 export const fetchRecentExpenses = async (): Promise<ExpenseData[]> => {
-  // Use mock data for now
-  return new Promise((resolve) => {
-    const recentExpenses = [...mockExpenses]
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-      .slice(0, 5);
-    
-    setTimeout(() => {
-      resolve(recentExpenses);
-    }, 500);
-  });
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const expensesRef = collection(db, "expenses");
+    const q = query(expensesRef, where("userId", "==", userId), orderBy("date", "desc"), limit(5));
+
+    const querySnapshot = await getDocs(q);
+    const expenses: ExpenseData[] = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate().toISOString(),
+    }));
+
+    return expenses;
+  } catch (error) {
+    console.error("Error fetching recent expenses:", error);
+    throw error;
+  }
 };
 
 export const fetchTripExpenses = async (tripId: string): Promise<ExpenseData[]> => {
-  // Use mock data for now
-  return new Promise((resolve) => {
-    const tripExpenses = mockExpenses.filter(expense => expense.tripId === tripId);
-    
-    setTimeout(() => {
-      resolve(tripExpenses);
-    }, 300);
-  });
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const expensesRef = collection(db, "expenses");
+    const q = query(expensesRef, where("userId", "==", userId), where("tripId", "==", tripId));
+
+    const querySnapshot = await getDocs(q);
+    const expenses: ExpenseData[] = querySnapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+      date: doc.data().date.toDate().toISOString(),
+    }));
+
+    return expenses;
+  } catch (error) {
+    console.error("Error fetching trip expenses:", error);
+    throw error;
+  }
 };
 
 export const fetchExpenseById = async (expenseId: string): Promise<ExpenseData | null> => {
-  // Use mock data for now
-  return new Promise((resolve) => {
-    const expense = mockExpenses.find(e => e.id === expenseId);
-    
-    setTimeout(() => {
-      resolve(expense || null);
-    }, 300);
-  });
+  try {
+    const expenseRef = doc(db, "expenses", expenseId);
+    const docSnapshot = await getDoc(expenseRef);
+
+    if (!docSnapshot.exists()) return null;
+
+    return {
+      id: docSnapshot.id,
+      ...docSnapshot.data(),
+      date: docSnapshot.data().date.toDate().toISOString(),
+    } as ExpenseData;
+  } catch (error) {
+    console.error("Error fetching expense:", error);
+    throw error;
+  }
 };
 
-export const addExpense = async (expenseData: Omit<ExpenseData, 'id' | 'userId' | 'createdAt' | 'updatedAt'>): Promise<string> => {
-  // Simulate adding an expense
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve('new-expense-id');
-    }, 800);
-  });
+export const addExpense = async (expenseData: Omit<ExpenseData, "id" | "userId" | "createdAt" | "updatedAt">): Promise<string> => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const docRef = await addDoc(collection(db, "expenses"), {
+      ...expenseData,
+      userId,
+      createdAt: Timestamp.now(),
+      updatedAt: Timestamp.now()
+    });
+
+    return docRef.id;
+  } catch (error) {
+    console.error("Error adding expense:", error);
+    throw error;
+  }
 };
 
 export const updateExpense = async (expenseId: string, expenseData: Partial<ExpenseData>): Promise<void> => {
-  // Simulate updating an expense
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 800);
-  });
+  try {
+    const expenseRef = doc(db, "expenses", expenseId);
+    
+    await updateDoc(expenseRef, {
+      ...expenseData,
+      updatedAt: Timestamp.now()
+    });
+
+    console.log(`Expense ${expenseId} updated successfully!`);
+  } catch (error) {
+    console.error("Error updating expense:", error);
+    throw error;
+  }
 };
 
 export const deleteExpense = async (expenseId: string): Promise<void> => {
-  // Simulate deleting an expense
-  return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, 800);
-  });
+  try {
+    const expenseRef = doc(db, "expenses", expenseId);
+    await deleteDoc(expenseRef);
+    console.log(`Expense ${expenseId} deleted successfully!`);
+  } catch (error) {
+    console.error("Error deleting expense:", error);
+    throw error;
+  }
 };
 
 // STATISTICS
 
 export const fetchTotalSpent = async (timeframe?: string): Promise<number> => {
-  // Simulate fetching total spent
-  return new Promise((resolve) => {
-    let total = 0;
-    
-    if (timeframe === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      
-      mockExpenses.forEach(expense => {
-        if (new Date(expense.date) >= weekAgo) {
-          total += expense.amount;
-        }
-      });
-    } else if (timeframe === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      
-      mockExpenses.forEach(expense => {
-        if (new Date(expense.date) >= monthAgo) {
-          total += expense.amount;
-        }
-      });
-    } else if (timeframe === 'year') {
-      const yearAgo = new Date();
-      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-      
-      mockExpenses.forEach(expense => {
-        if (new Date(expense.date) >= yearAgo) {
-          total += expense.amount;
-        }
-      });
-    } else {
-      // All time
-      mockExpenses.forEach(expense => {
-        total += expense.amount;
-      });
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const expensesRef = collection(db, "expenses");
+    let q = query(expensesRef, where("userId", "==", userId));
+
+    // Apply timeframe filters
+    if (timeframe) {
+      const now = new Date();
+      let startDate;
+
+      if (timeframe === "week") {
+        now.setDate(now.getDate() - 7);
+        startDate = now;
+      } else if (timeframe === "month") {
+        now.setMonth(now.getMonth() - 1);
+        startDate = now;
+      } else if (timeframe === "year") {
+        now.setFullYear(now.getFullYear() - 1);
+        startDate = now;
+      }
+
+      if (startDate) {
+        q = query(expensesRef, where("userId", "==", userId), where("date", ">=", startDate));
+      }
     }
-    
-    setTimeout(() => {
-      resolve(total);
-    }, 300);
-  });
+
+    const querySnapshot = await getDocs(q);
+    const totalSpent = querySnapshot.docs.reduce((total, doc) => total + doc.data().amount, 0);
+
+    return totalSpent;
+  } catch (error) {
+    console.error("Error fetching total spent:", error);
+    throw error;
+  }
 };
 
-export const fetchExpenseStats = async (groupBy: 'category' | 'month', timeframe?: string): Promise<StatsByCategory[] | StatsByMonth[]> => {
-  // Simulate fetching expense statistics
-  return new Promise((resolve) => {
-    let filteredExpenses = [...mockExpenses];
-    
-    if (timeframe === 'week') {
-      const weekAgo = new Date();
-      weekAgo.setDate(weekAgo.getDate() - 7);
-      
-      filteredExpenses = filteredExpenses.filter(expense => 
-        new Date(expense.date) >= weekAgo
-      );
-    } else if (timeframe === 'month') {
-      const monthAgo = new Date();
-      monthAgo.setMonth(monthAgo.getMonth() - 1);
-      
-      filteredExpenses = filteredExpenses.filter(expense => 
-        new Date(expense.date) >= monthAgo
-      );
-    } else if (timeframe === 'year') {
-      const yearAgo = new Date();
-      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-      
-      filteredExpenses = filteredExpenses.filter(expense => 
-        new Date(expense.date) >= yearAgo
-      );
+export const fetchExpenseStats = async (groupBy: "category" | "month", timeframe?: string): Promise<StatsByCategory[] | StatsByMonth[]> => {
+  try {
+    const userId = auth.currentUser?.uid;
+    if (!userId) throw new Error("User not authenticated");
+
+    const expensesRef = collection(db, "expenses");
+    let q = query(expensesRef, where("userId", "==", userId));
+
+    // Apply timeframe filter
+    if (timeframe) {
+      const now = new Date();
+      let startDate;
+
+      if (timeframe === "week") {
+        now.setDate(now.getDate() - 7);
+        startDate = now;
+      } else if (timeframe === "month") {
+        now.setMonth(now.getMonth() - 1);
+        startDate = now;
+      } else if (timeframe === "year") {
+        now.setFullYear(now.getFullYear() - 1);
+        startDate = now;
+      }
+
+      if (startDate) {
+        q = query(expensesRef, where("userId", "==", userId), where("date", ">=", startDate));
+      }
     }
-    
-    if (groupBy === 'category') {
+
+    const querySnapshot = await getDocs(q);
+    const expenses = querySnapshot.docs.map((doc) => doc.data());
+
+    if (groupBy === "category") {
       const categoryStats: Record<string, number> = {};
-      
-      filteredExpenses.forEach(expense => {
-        if (categoryStats[expense.category]) {
-          categoryStats[expense.category] += expense.amount;
-        } else {
-          categoryStats[expense.category] = expense.amount;
-        }
+      expenses.forEach((expense) => {
+        categoryStats[expense.category] = (categoryStats[expense.category] || 0) + expense.amount;
       });
-      
-      const result: StatsByCategory[] = Object.entries(categoryStats)
+
+      return Object.entries(categoryStats)
         .map(([category, amount]) => ({ category, amount }))
         .sort((a, b) => b.amount - a.amount);
-      
-      setTimeout(() => {
-        resolve(result);
-      }, 500);
     } else {
       const monthStats: Record<string, number> = {};
-      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      
-      filteredExpenses.forEach(expense => {
-        const date = new Date(expense.date);
-        const monthName = months[date.getMonth()];
-        
-        if (monthStats[monthName]) {
-          monthStats[monthName] += expense.amount;
-        } else {
-          monthStats[monthName] = expense.amount;
-        }
+      const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+      expenses.forEach((expense) => {
+        const monthName = months[new Date(expense.date).getMonth()];
+        monthStats[monthName] = (monthStats[monthName] || 0) + expense.amount;
       });
-      
-      const result: StatsByMonth[] = Object.entries(monthStats)
+
+      return Object.entries(monthStats)
         .map(([month, amount]) => ({ month, amount }))
-        .sort((a, b) => {
-          return months.indexOf(a.month) - months.indexOf(b.month);
-        });
-      
-      setTimeout(() => {
-        resolve(result);
-      }, 500);
+        .sort((a, b) => months.indexOf(a.month) - months.indexOf(b.month));
     }
-  });
+  } catch (error) {
+    console.error("Error fetching expense stats:", error);
+    throw error;
+  }
 };
