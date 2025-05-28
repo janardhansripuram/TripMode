@@ -1,25 +1,22 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, KeyboardAvoidingView, Platform, Image, ActivityIndicator } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Receipt, Camera, X, PlusCircle, Save } from 'lucide-react-native';
+import { Receipt, Camera, DollarSign, Calendar, Users, Save } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
-import { addExpense } from '@/services/expenseService';
-import { fetchTrips } from '@/services/expenseService';
-import CategorySelector from '@/components/CategorySelector';
-import CurrencySelector from '@/components/CurrencySelector';
 import DateTimePicker from '@/components/DateTimePicker';
-import { TripData } from '@/types';
+import CurrencySelector from '@/components/CurrencySelector';
+import CategorySelector from '@/components/CategorySelector';
 
 const EXPENSE_CATEGORIES = [
-  { id: 'food', name: 'Food', icon: 'utensils' },
-  { id: 'transport', name: 'Transport', icon: 'car' },
-  { id: 'accommodation', name: 'Accommodation', icon: 'bed' },
+  { id: 'food', name: 'Food & Drinks', icon: 'utensils' },
+  { id: 'transport', name: 'Transportation', icon: 'car' },
   { id: 'shopping', name: 'Shopping', icon: 'shopping-bag' },
   { id: 'entertainment', name: 'Entertainment', icon: 'film' },
-  { id: 'activities', name: 'Activities', icon: 'hiking' },
-  { id: 'other', name: 'Other', icon: 'ellipsis-h' },
+  { id: 'utilities', name: 'Utilities', icon: 'zap' },
+  { id: 'rent', name: 'Rent', icon: 'home' },
+  { id: 'other', name: 'Other', icon: 'more-horizontal' },
 ];
 
 export default function AddExpenseScreen() {
@@ -34,32 +31,8 @@ export default function AddExpenseScreen() {
   const [date, setDate] = useState(new Date());
   const [notes, setNotes] = useState('');
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
-  const [selectedTrip, setSelectedTrip] = useState<string | null>(null);
-  const [trips, setTrips] = useState<TripData[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState('');
-  
-  useEffect(() => {
-    const loadTrips = async () => {
-      try {
-        const tripsData = await fetchTrips();
-        // Filter only active and upcoming trips
-        const availableTrips = tripsData.filter(trip => 
-          new Date(trip.endDate) >= new Date()
-        );
-        setTrips(availableTrips);
-        
-        // Auto-select the first trip if available
-        if (availableTrips.length > 0) {
-          setSelectedTrip(availableTrips[0].id);
-        }
-      } catch (error) {
-        console.error('Error loading trips for expense:', error);
-      }
-    };
-    
-    loadTrips();
-  }, []);
   
   const pickImage = async () => {
     try {
@@ -101,13 +74,8 @@ export default function AddExpenseScreen() {
     }
   };
   
-  const removeImage = () => {
-    setReceiptImage(null);
-  };
-  
   const handleSubmit = async () => {
-    // Validate inputs
-    if (!title) {
+    if (!title.trim()) {
       setError('Please enter a title');
       return;
     }
@@ -122,32 +90,18 @@ export default function AddExpenseScreen() {
       return;
     }
     
-    if (!selectedTrip) {
-      setError('Please select a trip');
-      return;
-    }
-    
     setIsSubmitting(true);
     setError('');
     
     try {
-      await addExpense({
-        title,
-        amount: parseFloat(amount),
-        category,
-        currency,
-        date: date.toISOString(),
-        notes,
-        receiptImage,
-        tripId: selectedTrip,
-      });
+      // Simulate API call
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Reset form and navigate back
       resetForm();
-      router.push('/(tabs)');
-    } catch (error: any) {
-      setError(error.message || 'Failed to add expense. Please try again.');
-    } finally {
+      router.back();
+    } catch (error) {
+      setError('Failed to add expense. Please try again.');
       setIsSubmitting(false);
     }
   };
@@ -164,11 +118,7 @@ export default function AddExpenseScreen() {
   };
   
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      style={[styles.container, { backgroundColor: colors.background }]}
-      keyboardVerticalOffset={100}
-    >
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Add Expense</Text>
@@ -185,7 +135,7 @@ export default function AddExpenseScreen() {
             <Text style={[styles.label, { color: colors.text }]}>Title</Text>
             <TextInput
               style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-              placeholder="What did you spend on?"
+              placeholder="What's this expense for?"
               placeholderTextColor={colors.textLight}
               value={title}
               onChangeText={setTitle}
@@ -195,14 +145,17 @@ export default function AddExpenseScreen() {
           <View style={styles.inputRow}>
             <View style={[styles.inputGroup, { flex: 1, marginRight: 12 }]}>
               <Text style={[styles.label, { color: colors.text }]}>Amount</Text>
-              <TextInput
-                style={[styles.input, { backgroundColor: colors.card, color: colors.text, borderColor: colors.border }]}
-                placeholder="0.00"
-                placeholderTextColor={colors.textLight}
-                value={amount}
-                onChangeText={setAmount}
-                keyboardType="numeric"
-              />
+              <View style={[styles.amountContainer, { backgroundColor: colors.card, borderColor: colors.border }]}>
+                <DollarSign size={20} color={colors.primary} />
+                <TextInput
+                  style={[styles.amountInput, { color: colors.text }]}
+                  placeholder="0.00"
+                  placeholderTextColor={colors.textLight}
+                  value={amount}
+                  onChangeText={setAmount}
+                  keyboardType="numeric"
+                />
+              </View>
             </View>
             
             <View style={[styles.inputGroup, { width: 120 }]}>
@@ -234,58 +187,15 @@ export default function AddExpenseScreen() {
             />
           </View>
           
-          <View style={styles.inputGroup}>
-            <Text style={[styles.label, { color: colors.text }]}>Trip</Text>
-            {trips.length === 0 ? (
-              <View style={[styles.noTripsContainer, { backgroundColor: colors.cardAlt }]}>
-                <Text style={[styles.noTripsText, { color: colors.textLight }]}>
-                  No active trips available
-                </Text>
-                <TouchableOpacity 
-                  style={[styles.createTripButton, { backgroundColor: colors.primary }]}
-                  onPress={() => router.push('/trips/new')}
-                >
-                  <PlusCircle size={16} color="#FFFFFF" />
-                  <Text style={styles.createTripButtonText}>Create Trip</Text>
-                </TouchableOpacity>
-              </View>
-            ) : (
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={styles.tripsContainer}
-              >
-                {trips.map((trip) => (
-                  <TouchableOpacity
-                    key={trip.id}
-                    style={[
-                      styles.tripItem,
-                      { backgroundColor: selectedTrip === trip.id ? colors.primaryLight : colors.card },
-                      { borderColor: selectedTrip === trip.id ? colors.primary : colors.border }
-                    ]}
-                    onPress={() => setSelectedTrip(trip.id)}
-                  >
-                    <Text 
-                      style={[
-                        styles.tripName, 
-                        { color: selectedTrip === trip.id ? colors.primary : colors.text }
-                      ]}
-                    >
-                      {trip.name}
-                    </Text>
-                    <Text 
-                      style={[
-                        styles.tripDestination, 
-                        { color: selectedTrip === trip.id ? colors.primary : colors.textLight }
-                      ]}
-                    >
-                      {trip.destination}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
-            )}
-          </View>
+          <TouchableOpacity 
+            style={[styles.splitButton, { backgroundColor: colors.primaryLight }]}
+            onPress={() => router.push('/split-expense')}
+          >
+            <Users size={20} color={colors.primary} />
+            <Text style={[styles.splitButtonText, { color: colors.primary }]}>
+              Split with friends
+            </Text>
+          </TouchableOpacity>
           
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Notes (Optional)</Text>
@@ -309,23 +219,23 @@ export default function AddExpenseScreen() {
             <Text style={[styles.label, { color: colors.text }]}>Receipt (Optional)</Text>
             
             {receiptImage ? (
-              <View style={styles.receiptImageContainer}>
+              <View style={styles.receiptPreview}>
                 <Image source={{ uri: receiptImage }} style={styles.receiptImage} />
                 <TouchableOpacity 
-                  style={[styles.removeImageButton, { backgroundColor: colors.error }]}
-                  onPress={removeImage}
+                  style={[styles.removeButton, { backgroundColor: colors.error }]}
+                  onPress={() => setReceiptImage(null)}
                 >
-                  <X size={16} color="#FFFFFF" />
+                  <Text style={styles.removeButtonText}>Remove</Text>
                 </TouchableOpacity>
               </View>
             ) : (
-              <View style={[styles.uploadOptions, { borderColor: colors.border }]}>
+              <View style={[styles.uploadContainer, { borderColor: colors.border }]}>
                 <TouchableOpacity 
                   style={[styles.uploadOption, { backgroundColor: colors.card }]}
                   onPress={pickImage}
                 >
                   <Receipt size={24} color={colors.primary} />
-                  <Text style={[styles.uploadOptionText, { color: colors.text }]}>
+                  <Text style={[styles.uploadText, { color: colors.text }]}>
                     Choose File
                   </Text>
                 </TouchableOpacity>
@@ -337,7 +247,7 @@ export default function AddExpenseScreen() {
                   onPress={takePicture}
                 >
                   <Camera size={24} color={colors.primary} />
-                  <Text style={[styles.uploadOptionText, { color: colors.text }]}>
+                  <Text style={[styles.uploadText, { color: colors.text }]}>
                     Take Photo
                   </Text>
                 </TouchableOpacity>
@@ -361,7 +271,7 @@ export default function AddExpenseScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -371,7 +281,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingTop: 60,
-    paddingBottom: 120,
+    paddingBottom: 40,
   },
   header: {
     paddingHorizontal: 24,
@@ -397,10 +307,6 @@ const styles = StyleSheet.create({
   inputGroup: {
     marginBottom: 20,
   },
-  inputRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
   label: {
     fontFamily: 'Inter-Medium',
     fontSize: 16,
@@ -414,55 +320,43 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Inter-Regular',
   },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  amountContainer: {
+    height: 56,
+    borderRadius: 8,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+  },
+  amountInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 16,
+    fontFamily: 'Inter-Regular',
+  },
   textArea: {
     height: 120,
     paddingTop: 12,
     paddingBottom: 12,
   },
-  noTripsContainer: {
-    padding: 16,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  noTripsText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    marginBottom: 12,
-  },
-  createTripButton: {
+  splitButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
+    justifyContent: 'center',
+    padding: 16,
     borderRadius: 8,
+    marginBottom: 20,
   },
-  createTripButtonText: {
-    fontFamily: 'Inter-Medium',
-    fontSize: 14,
-    color: '#FFFFFF',
-    marginLeft: 6,
-  },
-  tripsContainer: {
-    paddingVertical: 8,
-  },
-  tripItem: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    marginRight: 12,
-    borderWidth: 1,
-    minWidth: 150,
-  },
-  tripName: {
+  splitButtonText: {
     fontFamily: 'Inter-SemiBold',
     fontSize: 16,
-    marginBottom: 4,
+    marginLeft: 8,
   },
-  tripDestination: {
-    fontFamily: 'Inter-Regular',
-    fontSize: 14,
-  },
-  uploadOptions: {
+  uploadContainer: {
     flexDirection: 'row',
     borderRadius: 8,
     borderWidth: 1,
@@ -474,7 +368,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  uploadOptionText: {
+  uploadText: {
     fontFamily: 'Inter-Medium',
     fontSize: 14,
     marginTop: 8,
@@ -482,25 +376,28 @@ const styles = StyleSheet.create({
   divider: {
     width: 1,
   },
-  receiptImageContainer: {
-    position: 'relative',
+  receiptPreview: {
     borderRadius: 8,
     overflow: 'hidden',
+    position: 'relative',
   },
   receiptImage: {
     width: '100%',
     height: 200,
     borderRadius: 8,
   },
-  removeImageButton: {
+  removeButton: {
     position: 'absolute',
-    top: 12,
-    right: 12,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    top: 8,
+    right: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 6,
+  },
+  removeButtonText: {
+    fontFamily: 'Inter-Medium',
+    fontSize: 14,
+    color: '#FFFFFF',
   },
   submitButton: {
     height: 56,
