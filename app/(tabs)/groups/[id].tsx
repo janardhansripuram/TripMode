@@ -101,7 +101,7 @@ export default function GroupDetailsScreen() {
           disabled={isDeleting}
         >
           {isDeleting ? (
-            <ActivityIndicator size="small" color={colors.error} />
+            <ActivityIndicator size="small\" color={colors.error} />
           ) : (
             <Trash2 size={20} color={colors.error} />
           )}
