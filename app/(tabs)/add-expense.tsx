@@ -1,29 +1,28 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator, Platform } from 'react-native';
-import { useRouter } from 'expo-router';
+import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Image, ActivityIndicator } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { Receipt, Camera, DollarSign, Calendar, Users, Save } from 'lucide-react-native';
+import { Receipt, Camera, DollarSign, Calendar, Save, ArrowLeft } from 'lucide-react-native';
 import { useTheme } from '@/context/ThemeContext';
 import { THEME_COLORS } from '@/constants/colors';
-import { addExpense,fetchRecentExpenses,fetchTotalSpent } from '@/services/expenseService';
-import { fetchTrips } from '@/services/expenseService';
+import { addExpense } from '@/services/expenseService';
 import CategorySelector from '@/components/CategorySelector';
 import CurrencySelector from '@/components/CurrencySelector';
 import DateTimePicker from '@/components/DateTimePicker';
-import { TripData } from '@/types';
 import { Timestamp } from 'firebase/firestore';
 
 const EXPENSE_CATEGORIES = [
   { id: 'food', name: 'Food & Drinks', icon: 'utensils' },
   { id: 'transport', name: 'Transportation', icon: 'car' },
+  { id: 'accommodation', name: 'Accommodation', icon: 'home' },
+  { id: 'activities', name: 'Activities', icon: 'flag' },
   { id: 'shopping', name: 'Shopping', icon: 'shopping-bag' },
   { id: 'entertainment', name: 'Entertainment', icon: 'film' },
-  { id: 'utilities', name: 'Utilities', icon: 'zap' },
-  { id: 'rent', name: 'Rent', icon: 'home' },
   { id: 'other', name: 'Other', icon: 'more-horizontal' },
 ];
 
 export default function AddExpenseScreen() {
+  const { tripId } = useLocalSearchParams<{ tripId: string }>();
   const { theme } = useTheme();
   const colors = THEME_COLORS[theme];
   const router = useRouter();
@@ -106,40 +105,29 @@ export default function AddExpenseScreen() {
         date: Timestamp.fromDate(date),
         notes,
         receiptImage,
-        tripId: selectedTrip,
+        tripId,
       });
-    
-      // Reset form and navigate back
-      resetForm();
-       fetchRecentExpenses(),
-            
-      fetchTotalSpent()
-      router.push('/(tabs)');
+      
+      router.back();
     } catch (error: any) {
       setError(error.message || 'Failed to add expense. Please try again.');
-    } finally {
       setIsSubmitting(false);
     }
   };
   
-  const resetForm = () => {
-    setTitle('');
-    setAmount('');
-    setCategory('');
-    setCurrency('USD');
-    setDate(new Date());
-    setNotes('');
-    setReceiptImage(null);
-    setError('');
-  };
-  
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>Add Expense</Text>
-        </View>
-        
+      <View style={styles.header}>
+        <TouchableOpacity 
+          style={[styles.backButton, { backgroundColor: colors.card }]}
+          onPress={() => router.back()}
+        >
+          <ArrowLeft size={20} color={colors.text} />
+        </TouchableOpacity>
+        <Text style={[styles.title, { color: colors.text }]}>Add Expense</Text>
+      </View>
+      
+      <ScrollView contentContainerStyle={styles.content}>
         {error ? (
           <View style={[styles.errorContainer, { backgroundColor: colors.errorLight }]}>
             <Text style={[styles.errorText, { color: colors.error }]}>{error}</Text>
@@ -202,16 +190,6 @@ export default function AddExpenseScreen() {
               theme={theme}
             />
           </View>
-          
-          <TouchableOpacity 
-            style={[styles.splitButton, { backgroundColor: colors.primaryLight }]}
-            onPress={() => router.push('/split-expense')}
-          >
-            <Users size={20} color={colors.primary} />
-            <Text style={[styles.splitButtonText, { color: colors.primary }]}>
-              Split with friends
-            </Text>
-          </TouchableOpacity>
           
           <View style={styles.inputGroup}>
             <Text style={[styles.label, { color: colors.text }]}>Notes (Optional)</Text>
@@ -295,20 +273,30 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  scrollContent: {
-    paddingTop: 60,
-    paddingBottom: 40,
-  },
   header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 24,
+    paddingTop: 60,
     marginBottom: 24,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
   },
   title: {
     fontFamily: 'Poppins-SemiBold',
     fontSize: 24,
   },
+  content: {
+    paddingHorizontal: 24,
+    paddingBottom: 40,
+  },
   errorContainer: {
-    marginHorizontal: 24,
     padding: 12,
     borderRadius: 8,
     marginBottom: 16,
@@ -318,15 +306,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   form: {
-    paddingHorizontal: 24,
+    gap: 20,
   },
   inputGroup: {
-    marginBottom: 20,
+    gap: 8,
   },
   label: {
     fontFamily: 'Inter-Medium',
     fontSize: 16,
-    marginBottom: 8,
   },
   input: {
     height: 56,
@@ -358,19 +345,6 @@ const styles = StyleSheet.create({
     height: 120,
     paddingTop: 12,
     paddingBottom: 12,
-  },
-  splitButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: 16,
-    borderRadius: 8,
-    marginBottom: 20,
-  },
-  splitButtonText: {
-    fontFamily: 'Inter-SemiBold',
-    fontSize: 16,
-    marginLeft: 8,
   },
   uploadContainer: {
     flexDirection: 'row',
